@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name=viewport content="width=device-width,initial-scale=1">
+    <title>登陆页</title>
+    <script src="../static/3rd_lib/mdui/js/mdui.min.js"></script>
+    <link href=/static/3rd_lib/mdui/css/mdui.min.css rel=stylesheet>
+    <script src="../static/3rd_lib/vue/vue.min.js"></script>
+    <script src="../static/3rd_lib/axios/axios.min.js"></script>
+    <script src="../static/3rd_lib/qs/qs.min.js"></script>
+</head>
+<body>
+<div id="app">
+    <h1>欢迎登陆智慧农业管理系统</h1>
+    <a v-if="login_status" v-bind:href="home_url">已有登陆状态，点击跳转</a>
+    <div class="mdui-card">
+        <div>
+            <span>用户：{{ username }}</span>
+            <input v-model="username" type="text">
+        </div>
+        <div>
+            <span>密码：{{ password }}</span>
+            <input v-model="password" type="password">
+        </div>
+        <div>
+            <button id="login" @click="login">确定</button>
+            <button id="cancel">注册</button>
+        </div>
+    </div>
+</div>
+<script>
+    var app = new Vue({
+        el: '#app',
+        data: {
+            login_status: null,
+            username: '',
+            password: '',
+            home_url: '/home'
+        },
+        methods: {
+            check_cookies: function () {
+                _this = this;
+                axios.get('/api/check_cookie')
+                    .then(function (resp) {
+                        if (resp.data.code === 0) {
+                            console.log('新cookie-set')
+                        }
+                        else if (resp.data.code === 1) {
+                            console.log('cookie未登陆')
+                        }
+                        else if (resp.data.code === 2) {
+                            console.log('cookie已登陆');
+                            _this.login_status = _this.home_url
+                        }
+                        else if (resp.data.code === -200) {
+                            alert('服务器抛出异常')
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                        alert('非200状态，网络超时')
+                    })
+            },
+            login: function () {
+                _this = this;
+                let data = Qs.stringify({username: this.username, password: this.password});
+                axios({
+                    method: 'post',
+                    url: '/api/login',
+                    data: data
+                }).then(function (resp) {
+                    if (resp.data.code === 0) {
+                        alert('登陆成功');
+                        window.location.href = _this.home_url
+                    }
+                    else if (resp.data.code === -200) {
+                        alert('服务器抛出异常')
+                    }
+                    else {
+                        alert('登陆失败')
+                    }
+                }).catch(function (error) {
+                    console.log(error)
+                });
+            }
+        },
+        mounted: function () {
+            this.check_cookies();
+        }
+    })
+</script>
+</body>
+</html>

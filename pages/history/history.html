@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name=viewport content="width=device-width,initial-scale=1">
+    <title>history</title>
+    <script src="../../static/3rd_lib/mdui/js/mdui.min.js"></script>
+    <link href=/static/3rd_lib/mdui/css/mdui.min.css rel=stylesheet>
+    <script src="../../static/3rd_lib/vue/vue.min.js"></script>
+    <script src="../../static/3rd_lib/axios/axios.min.js"></script>
+    <script src="../../static/3rd_lib/qs/qs.min.js"></script>
+    <script src="../../static/3rd_lib/echarts/echarts.min.js"></script>
+</head>
+<body>
+<div id="app">
+    <div class="mdui-bottom-nav mdui-color-red">
+        <a href="javascript:window.location.href='/home';" class="mdui-ripple">
+            <i class="mdui-icon material-icons">home</i>
+            <label>主页</label>
+        </a>
+        <a href="javascript:window.location.href='/history';" class="mdui-ripple mdui-bottom-nav-active">
+            <i class="mdui-icon material-icons">history</i>
+            <label>历史记录</label>
+        </a>
+        <a href="javascript:window.location.href='/threshold'" class="mdui-ripple">
+            <i class="mdui-icon material-icons">settings</i>
+            <label>阈值设定</label>
+        </a>
+        <a href="javascript:window.location.href='/alarm'" class="mdui-ripple">
+            <i class="mdui-icon material-icons">notifications_active</i>
+            <label>警报查看</label>
+        </a>
+
+    </div>
+
+    <div style="text-align: center;">
+        <h1>历史记录查看和导出</h1>
+    </div>
+
+    <div style="display: block; margin: 20px auto 20px auto; text-align: center;">
+        <div>
+            <span>请选择设备：</span>
+            <select v-model="selected_device_id" class="mdui-select" style="width: 200px;">
+                <option v-for="i in device_id_options" v-bind:value="i">{{ i }}</option>
+            </select>
+        </div>
+        <div>
+            <span>请选择日期：</span>
+            <select v-model="selected_date" class="mdui-select" style="width: 200px;">
+                <option v-for="i in date_options" v-bind:value="i">{{ i }}</option>
+            </select>
+        </div>
+        <div v-if="selected_device_id && selected_date" style="margin: 20px auto 20px auto;">
+            <button class="mdui-btn mdui-color-red mdui-ripple" @click="get_history_data_by_device_id">查询历史记录</button>
+            <button v-if="history_data" class="mdui-btn mdui-color-red mdui-ripple" @click="get_history_file">导出EXCEL表</button>
+        </div>
+    </div>
+
+
+    <!-- 图表 -->
+    <div>
+        <div v-for="k in tmp_1" v-bind:id="k" style="height: 500px; width: 600px; display: block; margin: 20px auto 20px auto;"></div>
+    </div>
+
+</div>
+</body>
+<script>
+    var app = new Vue({
+        el: '#app',
+        data: {
+            device_id_options: [], // 设备选择器下拉
+            selected_device_id: '', // 设备选择器绑定M
+
+            date_options: [], // 时间日期选择器下拉
+            selected_date: '', // 时间日期选择器绑定M
+
+            history_data: '',
+            tmp_1: ['e1', 'e2']
+        },
+        methods: {
+            get_all_device_id: function () {
+                _this = this;
+                axios.get('/history/get_all_device_id')
+                    .then(function (resp) {
+                        if (resp.data.code === 0) {
+                            let list = resp.data.msg;
+                            for (let i = 0; i < list.length; i++) {
+                               _this.device_id_options.push(list[i].device_id)
+                            }
+                        }
+                        else if (resp.data.code === -1) {
+                            alert(resp.data.msg.toString());
+                            window.location.href = '/login'
+                        }
+                        else if (resp.data.code === -200) {
+                            alert('服务器抛出异常')
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                        alert('非200状态，网络超时')
+                    })
+            },
+            get_date_options: function() {
+                _this = this;
+                axios.get('/history/get_date_options')
+                    .then(function (resp) {
+                        if (resp.data.code === 0) {
+                            console.log(resp.data.msg);
+                            _this.date_options = resp.data.msg;
+                        }
+                        else if (resp.data.code === -1) {
+                            alert(resp.data.msg.toString());
+                            window.location.href = '/login'
+                        }
+                        else if (resp.data.code === -200) {
+                            alert('服务器抛出异常')
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                        alert('非200状态，网络超时')
+                    })
+            },
+            get_history_data_by_device_id: function () {
+                console.log(this.selected_device_id);
+                _this = this;
+                axios.get('/history/get_history_data_by_device_id' + '?device_id=' + this.selected_device_id + '&date=' + this.selected_date)
+                    .then(function (resp) {
+                        if (resp.data.code === 0) {
+                            _this.history_data = resp.data.msg;
+                            _this.render_echarts()
+                                                    }
+                        else if (resp.data.code === -1) {
+                            alert(resp.data.msg.toString());
+                            window.location.href = '/login'
+                        }
+                        else if (resp.data.code === -200) {
+                            alert('服务器抛出异常')
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                        alert('非200状态，网络超时')
+                    })
+
+            },
+            get_history_file: function () {
+                _this = this;
+                axios.get('/history/get_history_file' + '?device_id=' + this.selected_device_id + '&date=' + this.selected_date)
+                    .then(function (resp) {
+                        if (resp.data.code === 0) {
+                            console.log(resp.data.msg);
+                            window.location.href = resp.data.msg;
+                        }
+                        else if (resp.data.code === -1) {
+                            alert(resp.data.msg.toString());
+                            window.location.href = '/login'
+                        }
+                        else if (resp.data.code === -200) {
+                            alert('服务器抛出异常')
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                        alert('非200状态，网络超时')
+                    })
+            },
+            render_echarts: function () {
+                for (let i = 0; i < this.history_data.length; i++) {
+                    let option = {
+                        title: {
+                            text: '标题',
+                            subtext: '子标题',
+                            x: 'center'
+                        },
+                        xAxis: {
+                            type: 'category',
+                            data: []
+                        },
+                        yAxis: {
+                            type: 'value'
+                        },
+                        series: [{
+                            name: '',
+                            data: [],
+                            type: 'line',
+                            markPoint: {
+                                data: [
+                                    {type: 'max', name: '最大值'},
+                                    {type: 'min', name: '最小值'}
+                                ]
+                            },
+                            markLine: {
+                                data: [
+                                    {type: 'average', name: '平均值'}
+                                ]
+                            }
+                        }],
+                        tooltip: {
+                            trigger: 'axis'
+                        }
+                    };
+                    option.title.text = this.history_data[i].device_id + '的' + this.history_data[i].record_type + '传感器';
+                    option.title.subtext = this.selected_date + '的历史记录';
+                    for (let j = 0; j < this.history_data[i].history.length; j++) {
+                        option.xAxis.data.push(this.history_data[i].history[j].record_time);
+                        option.series[0].data.push(this.history_data[i].history[j].record_value)
+                    }
+                    let myChart = echarts.init(document.getElementById(this.tmp_1[i]));
+                    myChart.setOption(option);
+                }
+            }
+        },
+        mounted: function () {
+            this.get_all_device_id();
+            this.get_date_options()
+        }
+    })
+</script>
+</html>

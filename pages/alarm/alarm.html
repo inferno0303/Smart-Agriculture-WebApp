@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name=viewport content="width=device-width,initial-scale=1">
+    <title>警报查看</title>
+    <script src="../../static/3rd_lib/mdui/js/mdui.min.js"></script>
+    <link href=/static/3rd_lib/mdui/css/mdui.min.css rel=stylesheet>
+    <script src="../../static/3rd_lib/vue/vue.min.js"></script>
+    <script src="../../static/3rd_lib/axios/axios.min.js"></script>
+    <script src="../../static/3rd_lib/qs/qs.min.js"></script>
+    <script src="../../static/3rd_lib/echarts/echarts.min.js"></script>
+</head>
+<body>
+<div id="app">
+    <div class="mdui-bottom-nav mdui-color-red">
+        <a href="javascript:window.location.href='/home';" class="mdui-ripple">
+            <i class="mdui-icon material-icons">home</i>
+            <label>主页</label>
+        </a>
+        <a href="javascript:window.location.href='/history';" class="mdui-ripple">
+            <i class="mdui-icon material-icons">history</i>
+            <label>历史记录</label>
+        </a>
+        <a href="javascript:window.location.href='/threshold'" class="mdui-ripple">
+            <i class="mdui-icon material-icons">settings</i>
+            <label>阈值设定</label>
+        </a>
+        <a href="javascript:window.location.href='/alarm'" class="mdui-ripple mdui-bottom-nav-active">
+            <i class="mdui-icon material-icons">notifications_active</i>
+            <label>警报查看</label>
+        </a>
+    </div>
+
+    <div style="text-align: center;">
+        <h1>警报查看</h1>
+    </div>
+
+    <div style="max-width: 80%; display: block; margin: 10px auto 10px auto;">
+        <!-- 表格 -->
+        <div style="text-align: center;">
+            <h2>超阈值报警</h2>
+            <div class="mdui-table-fluid">
+                <table class="mdui-table mdui-table-hoverable">
+                    <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>用户名</th>
+                        <th>节点</th>
+                        <th>传感器</th>
+                        <th>记录值</th>
+                        <th>触发条件</th>
+                        <th>触发时间</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr v-for="(i, count) in alarm_info">
+                        <td>{{ count + 1 }}</td>
+                        <td>{{ i.username }}</td>
+                        <td>{{ i.device_id }}</td>
+                        <td style="color: #b71c1c; font-weight: bold">{{ i.record_type }}</td>
+                        <td style="color: #b71c1c; font-weight: bold">{{ i.record_value + ' ' + i.unit }}</td>
+                        <td style="color: #b71c1c; font-weight: bold">{{ (i.record_value > 30) ? '过高' : '过低' }}</td>
+                        <td style="color: #b71c1c; font-weight: bold">{{ i.record_time }}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+
+        <!-- 表格 -->
+        <div style="text-align: center;">
+            <h2>阈值信息</h2>
+            <div class="mdui-table-fluid">
+                <table class="mdui-table mdui-table-hoverable">
+                    <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>用户名</th>
+                        <th>节点</th>
+                        <th>传感器</th>
+                        <th>最低阈值</th>
+                        <th>最高阈值</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr v-for="(i, count) in device_th">
+                        <td>{{ count + 1 }}</td>
+                        <td>{{ i.username }}</td>
+                        <td>{{ i.device_id }}</td>
+                        <td>{{ i.record_type }}</td>
+                        <td>{{ i.low_th }}</td>
+                        <td>{{ i.high_th }}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+<script>
+    var app = new Vue({
+        el: '#app',
+        data: {
+            // ajax全局
+            device_th: '',
+            alarm_info: ''
+        },
+        methods: {
+            get_device_th: function () {
+                _this = this;
+                axios.get('/alarm/get_device_th')
+                    .then(function (resp) {
+                        console.log(resp.data);
+                        if (resp.data.code === 0) {
+                            _this.device_th = resp.data.msg
+                        } else if (resp.data.code === -1) {
+                            alert(resp.data.msg.toString());
+                            window.location.href = '/login'
+                        } else if (resp.data.code === -200) {
+                            alert('服务器抛出异常')
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                        alert('非200状态，网络超时')
+                    })
+            },
+            get_alarm_info: function () {
+                _this = this;
+                axios.get('/alarm/get_alarm_info')
+                    .then(function (resp) {
+                        console.log(resp.data);
+                        if (resp.data.code === 0) {
+                            _this.alarm_info = resp.data.msg
+                        } else if (resp.data.code === -1) {
+                            alert(resp.data.msg.toString());
+                            window.location.href = '/login'
+                        } else if (resp.data.code === -200) {
+                            alert('服务器抛出异常')
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                        alert('非200状态，网络超时')
+                    })
+            }
+        },
+        mounted: function () {
+            this.get_device_th();
+            this.get_alarm_info()
+        }
+    })
+</script>
+</body>
+</html>

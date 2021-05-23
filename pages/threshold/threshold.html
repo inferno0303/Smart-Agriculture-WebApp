@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name=viewport content="width=device-width,initial-scale=1">
+    <title>threshold</title>
+    <script src="../../static/3rd_lib/mdui/js/mdui.min.js"></script>
+    <link href=/static/3rd_lib/mdui/css/mdui.min.css rel=stylesheet>
+    <script src="../../static/3rd_lib/vue/vue.min.js"></script>
+    <script src="../../static/3rd_lib/axios/axios.min.js"></script>
+    <script src="../../static/3rd_lib/qs/qs.min.js"></script>
+</head>
+<body>
+<div id="app">
+    <div class="mdui-bottom-nav mdui-color-red">
+        <a href="javascript:window.location.href='/home';" class="mdui-ripple">
+            <i class="mdui-icon material-icons">home</i>
+            <label>主页</label>
+        </a>
+        <a href="javascript:window.location.href='/history';" class="mdui-ripple">
+            <i class="mdui-icon material-icons">history</i>
+            <label>历史记录</label>
+        </a>
+        <a href="javascript:window.location.href='/threshold'" class="mdui-ripple  mdui-bottom-nav-active">
+            <i class="mdui-icon material-icons">settings</i>
+            <label>阈值设定</label>
+        </a>
+        <a href="javascript:window.location.href='/alarm'" class="mdui-ripple">
+            <i class="mdui-icon material-icons">notifications_active</i>
+            <label>警报查看</label>
+        </a>
+    </div>
+    <div style="text-align: center;">
+        <h1>阈值设定界面</h1>
+    </div>
+
+    <div style="display: block; margin: auto; text-align: center;">
+        <span>请选择设备：</span>
+        <select class="mdui-select" v-model="selected_device_id" style="width: 200px;">
+            <option v-for="i in device_id" v-bind:value="i">{{ i }}</option>
+        </select>
+    </div>
+
+    <div v-for="j in resp2">
+        <div class="mdui-card mdui-ripple" style="margin: 20px auto 20px auto; max-width: 80%; min-width: 400px;">
+            <div style="max-width: 85%; display: block; margin: 20px auto 20px auto;">
+                <div style="text-align: center; font-size: large; color: brown; margin: 15px auto 15px auto; max-width: 80%">设定{{ selected_device_id }}节点的{{ j.record_type }}传感器阈值</div>
+                <div class="mdui-divider"></div>
+                <div class="mdui-textfield">
+                    <label class="mdui-textfield-label">最低阈值：</label>
+                    <input class="mdui-textfield-input" type="text" v-bind:value="j.low_th" v-model="j.low_th"/>
+                </div>
+                <div class="mdui-textfield">
+                    <label class="mdui-textfield-label">最高阈值：</label>
+                    <input class="mdui-textfield-input" type="text" v-bind:value="j.high_th" v-model="j.high_th"/>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="resp2" style="text-align: center; margin: 20px auto 20px auto;">
+        <button class="mdui-btn mdui-color-red mdui-ripple" @click="setting_th">确定设置</button>
+    </div>
+
+</div>
+</body>
+<script>
+    var app = new Vue({
+        el: '#app',
+        data: {
+            device_id: [], // 选择器下拉列表
+            selected_device_id: null, // 选择器输入绑定
+            resp2: null // get_record_type_by_device_id请求的msg内容
+        },
+        methods: {
+            get_all_device_id: function () {
+                _this = this;
+                axios.get('/threshold/get_all_device_id')
+                    .then(function (resp) {
+                        if (resp.data.code === 0) {
+                            let list = resp.data.msg;
+                            for (let i = 0; i < list.length; i++) {
+                               _this.device_id.push(list[i].device_id)
+                            }
+                        }
+                        else if (resp.data.code === -1) {
+                            alert(resp.data.msg.toString());
+                            window.location.href = '/login'
+                        }
+                        else if (resp.data.code === -200) {
+                            alert('服务器抛出异常')
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                        alert('非200状态，网络超时')
+                    })
+            },
+            get_record_type_by_device_id: function () {
+                _this = this;
+                axios.get('/threshold/get_record_type_by_device_id' + '?device_id=' + this.selected_device_id)
+                    .then(function (resp) {
+                        if (resp.data.code === 0) {
+                            _this.resp2 = resp.data.msg;
+                        }
+                        else if (resp.data.code === -1) {
+                            alert(resp.data.msg.toString());
+                            window.location.href = '/login'
+                        }
+                        else if (resp.data.code === -200) {
+                            alert('服务器抛出异常')
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                        alert('非200状态，网络超时')
+                    })
+            },
+            setting_th: function () {
+                let data = Qs.stringify({device_id: this.selected_device_id, setting_th: JSON.stringify(this.resp2)});
+                axios({
+                    method: 'post',
+                    url: '/threshold/setting_th',
+                    data: data
+                }).then(function (resp) {
+                    console.log(resp);
+                    if (resp.data.code === 0) {
+                        alert('修改成功')
+                    }
+                    else if (resp.data.code === -200) {
+                        alert('服务器抛出异常')
+                    }
+                    else {
+                        alert('登陆失败')
+                    }
+                }).catch(function (error) {
+                    console.log(error)
+                });
+
+            }
+        },
+        watch: {
+            selected_device_id: function () {
+                this.get_record_type_by_device_id()
+            }
+        },
+        mounted: function () {
+            this.get_all_device_id();
+        }
+    })
+</script>
+</html>

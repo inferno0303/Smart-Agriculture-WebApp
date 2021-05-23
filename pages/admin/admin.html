@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name=viewport content="width=device-width,initial-scale=1">
+    <title>管理员页</title>
+    <script src="../../static/3rd_lib/mdui/js/mdui.min.js"></script>
+    <link href=/static/3rd_lib/mdui/css/mdui.min.css rel=stylesheet>
+    <script src="../../static/3rd_lib/vue/vue.min.js"></script>
+    <script src="../../static/3rd_lib/axios/axios.min.js"></script>
+    <script src="../../static/3rd_lib/qs/qs.min.js"></script>
+</head>
+<body>
+<div id="app">
+    <div class="mdui-bottom-nav mdui-color-indigo">
+        <a href="javascript:window.location.href='/login/';" class="mdui-ripple">
+            <i class="mdui-icon material-icons">&#xe8b8;</i>
+            <label>用户登录</label>
+        </a>
+        <a href="javascript:window.location.href='/register/';" class="mdui-ripple">
+            <i class="mdui-icon material-icons">&#xe8b8;</i>
+            <label>新用户注册</label>
+        </a>
+        <a href="javascript:window.location.href='/admin/';" class="mdui-ripple mdui-bottom-nav-active">
+            <i class="mdui-icon material-icons">&#xe8b8;</i>
+            <label>管理员</label>
+        </a>
+    </div>
+
+    <div style="text-align: center">
+        <h1>管理员页</h1>
+    </div>
+
+    <div v-if="show_admin_login" class="mdui-card" style="max-width: 50%; margin: 30px auto 30px auto">
+        <div style="max-width: 85%; margin: 30px auto 30px auto">
+            <div class="mdui-textfield">
+                <label>管理员用户名：</label>
+                <input v-model="user_infos.username" class="mdui-textfield-input" type="text"/>
+            </div>
+            <div class="mdui-textfield">
+                <label>管理员密码：</label>
+                <input v-model="user_infos.password" class="mdui-textfield-input" type="password"/>
+            </div>
+            <div style="display: block; margin: 20px auto 20px auto; text-align: center">
+                <button @click="submit_register" class="mdui-btn mdui-btn-raised mdui-ripple mdui-color-indigo" style="max-width: 60%; min-width: 300px">登录管理员端</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 表格 -->
+    <div v-if="all_users" style="text-align: center; max-width: 900px; margin: 30px auto 30px auto;">
+        <h2>用户管理</h2>
+        <div class="mdui-table-fluid">
+            <table class="mdui-table mdui-table-hoverable">
+                <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>用户名</th>
+                    <th>密码</th>
+                    <th>绑定邮箱</th>
+                    <th>绑定手机</th>
+                    <th>最后登录</th>
+                    <th>传感器数量</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="(i, count) in all_users" @click="dialog(i)">
+                    <td>{{ count + 1 }}</td>
+                    <td>{{ i.username }}</td>
+                    <td>{{ i.password }}</td>
+                    <td>{{ i.email }}</td>
+                    <td>{{ i.phone_number }}</td>
+                    <td>{{ i.last_login }}</td>
+                    <td>{{ i.sensor_count }}</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div v-if="dialog_btn" style="margin: 20px auto 20px auto;">
+        {{ dialog_btn }}
+        <button class="mdui-btn mdui-color-red mdui-ripple" @click="delete_user(dialog_btn)">确认删除</button>
+    </div>
+
+    <div style="text-align: center; max-width: 60%; margin: 20px auto 20px auto">
+    </div>
+
+</div>
+</body>
+<script>
+    var app = new Vue({
+        el: '#app',
+        data: {
+            show_admin_login: true,
+            user_infos: {'username': '', 'password': ''},
+            all_users: null,
+            dialog_btn: null
+        },
+        methods: {
+            submit_register: function () {
+                if (this.user_infos.username === 'admin' || this.user_infos.password === '123456') {
+                    alert('登录成功');
+                    this.show_dashboard()
+                }
+                else {
+                    alert('登录失败')
+                }
+            },
+            show_dashboard: function () {
+                this.show_admin_login = false;
+                _this = this;
+                axios.get('/admin/get_all_users' + '?admin=admin&admin_pass=123456')
+                    .then(function (resp) {
+                        if (resp.data.code === 0) {
+                            _this.all_users = resp.data.msg;
+                        } else {
+                            alert('服务器异常')
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                        alert('非200状态，网络超时')
+                    })
+            },
+            dialog: function(i) {
+                this.dialog_btn = i;
+            },
+            delete_user(i) {
+                console.log(i);
+                _this = this;
+                let data = Qs.stringify({'username': i.username, 'password': i.password, 'email': i.email, 'phone_number': i.phone_number});
+                axios({
+                    method: 'post',
+                    url: '/admin/delete_user',
+                    data: data
+                }).then(function (resp) {
+                    if (resp.data.code === 0) {
+                        alert(resp.data.msg);
+                        window.location.reload()
+                    }
+                    else if (resp.data.code === -1) {
+                        alert(resp.data.msg)
+                    }
+                    else if (resp.data.code === -200) {
+                        alert('服务器抛出异常')
+                    }
+                }).catch(function (error) {
+                    console.log(error)
+                });
+            }
+        },
+        mounted: function () {
+            this.get_all_device_id();
+        }
+    })
+</script>
+</html>

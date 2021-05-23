@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name=viewport content="width=device-width,initial-scale=1">
+    <title>home</title>
+    <script src="../../static/3rd_lib/mdui/js/mdui.min.js"></script>
+    <link href=/static/3rd_lib/mdui/css/mdui.min.css rel=stylesheet>
+    <script src="../../static/3rd_lib/vue/vue.min.js"></script>
+    <script src="../../static/3rd_lib/axios/axios.min.js"></script>
+    <script src="../../static/3rd_lib/qs/qs.min.js"></script>
+    <script src="../../static/3rd_lib/echarts/echarts.min.js"></script>
+</head>
+<body>
+<div id="app">
+    <div class="mdui-bottom-nav mdui-color-red">
+        <a href="javascript:window.location.href='/home';" class="mdui-ripple mdui-bottom-nav-active">
+            <i class="mdui-icon material-icons">home</i>
+            <label>主页</label>
+        </a>
+        <a href="javascript:window.location.href='/history';" class="mdui-ripple">
+            <i class="mdui-icon material-icons">history</i>
+            <label>历史记录</label>
+        </a>
+        <a href="javascript:window.location.href='/threshold'" class="mdui-ripple">
+            <i class="mdui-icon material-icons">settings</i>
+            <label>阈值设定</label>
+        </a>
+        <a href="javascript:window.location.href='/alarm'" class="mdui-ripple">
+            <i class="mdui-icon material-icons">notifications_active</i>
+            <label>警报查看</label>
+        </a>
+    </div>
+    <div style="text-align: center;">
+        <h1>首页概览</h1>
+        <h3>{{ user_infos.username }}，欢迎回来</h3>
+    </div>
+
+    <div style="max-width: 80%; display: block; margin: 10px auto 10px auto;">
+
+        <!-- 表格 -->
+        <div v-if="current_infos" style="text-align: center;">
+            <h2>实时预览</h2>
+            <div class="mdui-table-fluid">
+                <table class="mdui-table mdui-table-hoverable">
+                    <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>网关</th>
+                        <th>传感器</th>
+                        <th>最新值</th>
+                        <th>单位</th>
+                        <th>更新时间</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr v-for="(i, count) in current_infos">
+                        <td>{{ count + 1 }}</td>
+                        <td>{{ i.device_id }}</td>
+                        <td>{{ i.record_type }}</td>
+                        <td>{{ i.record_value }}</td>
+                        <td>{{ i.uint }}</td>
+                        <td>{{ i.record_time }}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+
+        <!--  最新传感器值 -->
+        <div class="mdui-card mdui-ripple" style="margin: 30px 30px 30px 30px; max-width: 400px; display: inline-block;" v-for="i in current_infos">
+            <div class="mdui-card-primary">
+                <div style="font-size: 16px; margin: 5px auto 5px auto">
+                    <span>节点：</span>
+                    <span style="color: #b71c1c; font-weight: bold">{{ i.device_id }}</span>
+                </div>
+                <div style="font-size: 14px; margin: 5px auto 5px auto">
+                    <span>传感器：</span>
+                    <span style="color: #b71c1c; font-weight: bold">{{ i.record_type }}</span>
+                </div>
+            </div>
+            <div class="mdui-divider"></div>
+            <div style="display: block; margin: 30px 30px 30px 30px">
+                <div style="text-align: center; margin: 5px auto 5px auto">
+                    <span style="color: #b71c1c; font-weight: bold; font-size: 32px">{{ i.record_value + ' ' + i.uint }}</span>
+                </div>
+                <div style="font-size: xx-small; text-align: right">
+                    <span>更新时间：{{ i.record_time }}</span>
+                </div>
+            </div>
+        </div>
+
+
+        <!--  用户信息 -->
+        <div v-if="user_infos" class="mdui-card mdui-ripple" style="margin: 30px auto 30px auto; max-width: 500px">
+            <h2 style="text-align: center">用户信息</h2>
+            <ul class="mdui-list">
+                <li class="mdui-list-item mdui-ripple">
+                    <div class="mdui-list-item-content">{{ '用户名：' + user_infos.username }}</div>
+                    <i class="mdui-list-item-icon mdui-icon material-icons">move_to_inbox</i>
+                </li>
+                <li class="mdui-list-item mdui-ripple">
+                    <div class="mdui-list-item-content">{{ '传感器数量：' + user_infos.sensor_count + '个' }}</div>
+                    <i class="mdui-list-item-icon mdui-icon material-icons">send</i>
+                </li>
+                <li class="mdui-list-item mdui-ripple">
+                    <div class="mdui-list-item-content">{{ '绑定邮箱：' + user_infos.email }}</div>
+                    <i class="mdui-list-item-icon mdui-icon material-icons">delete</i>
+                </li>
+                <li class="mdui-list-item mdui-ripple">
+                    <div class="mdui-list-item-content">{{ '绑定手机：' + user_infos.phone_number }}</div>
+                    <i class="mdui-list-item-icon mdui-icon material-icons">error</i>
+                </li>
+                <li class="mdui-list-item mdui-ripple">
+                    <div class="mdui-list-item-content" style="color: #b71c1c; font-weight: bold">{{ '最后登陆：' + user_infos.last_login }}</div>
+                    <i class="mdui-list-item-icon mdui-icon material-icons">error</i>
+                </li>
+                <li class="mdui-list-item mdui-ripple">
+                    <div @click="exit_login" class="mdui-list-item-content" style="color: #b71c1c; font-weight: bolder">
+                        <span>{{ '注销 ' + user_infos.username + ' 的登陆状态' }}</span>
+                    </div>
+                    <i class="mdui-list-item-icon mdui-icon material-icons">error</i>
+                </li>
+            </ul>
+        </div>
+
+    </div>
+
+</div>
+<script>
+    var app = new Vue({
+        el: '#app',
+        data: {
+            login_status: null,
+            username: 'xxx',
+            password: '',
+            // ajax全局
+            user_infos: '',
+            current_infos: '',
+            device_th: ''
+        },
+        methods: {
+            get_user_infos: function () {
+                _this = this;
+                axios.get('/home/get_user_infos')
+                    .then(function (resp) {
+                        if (resp.data.code === 0) {
+                            _this.user_infos = resp.data.msg;
+                        } else if (resp.data.code === -1) {
+                            alert(resp.data.msg.toString());
+                            window.location.href = '/login'
+                        } else if (resp.data.code === -200) {
+                            alert('服务器抛出异常')
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                        alert('非200状态，网络超时')
+                    })
+            },
+            get_current_device_infos: function () {
+                _this = this;
+                axios.get('/home/get_current_device_infos')
+                    .then(function (resp) {
+                        console.log(resp.data);
+                        if (resp.data.code === 0) {
+                            _this.current_infos = resp.data.msg
+                        } else if (resp.data.code === -1) {
+                            alert(resp.data.msg.toString());
+                            window.location.href = '/login'
+                        } else if (resp.data.code === -200) {
+                            alert('服务器抛出异常')
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                        alert('非200状态，网络超时')
+                    })
+            },
+            get_device_th: function () {
+                _this = this;
+                axios.get('/home/get_device_th')
+                    .then(function (resp) {
+                        if (resp.data.code === 0) {
+                            _this.device_th = resp.data.msg
+                        } else if (resp.data.code === -1) {
+                            alert(resp.data.msg.toString());
+                            window.location.href = '/login'
+                        } else if (resp.data.code === -200) {
+                            alert('服务器抛出异常')
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                        alert('非200状态，网络超时')
+                    })
+            },
+            exit_login: function () {
+                axios.get('/home/exit_login')
+                    .then(function (resp) {
+                        if (resp.data.code === 0) {
+                            alert(resp.data.msg);
+                            window.location.href = "/"
+                        }
+                        else {
+                            alert(resp.data.msg)
+                        }
+                    })
+            }
+        },
+        mounted: function () {
+            this.get_user_infos();
+            this.get_current_device_infos();
+        }
+    })
+</script>
+</body>
+</html>
